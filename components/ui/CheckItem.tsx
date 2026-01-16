@@ -10,7 +10,7 @@ export const CheckItem = ({ text, highlighted = false }: CheckItemProps) => {
     <div className="flex items-center gap-3 justify-start">
       <div className="flex-shrink-0">
         <Image
-          src={highlighted ? "/icon.svg" : "/Vector (1).svg"}
+          src={highlighted ? "/Icon.svg" : "/Vector (1).svg"}
           alt="check"
           width={20}
           height={20}

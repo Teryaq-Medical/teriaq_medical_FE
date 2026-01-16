@@ -10,7 +10,7 @@ const cairo = Cairo({
 
 export const metadata: Metadata = {
   title: "Teryaq",
-  description: "Auth System",
+  description: "medical System",
 };
 
 export default function RootLayout({
