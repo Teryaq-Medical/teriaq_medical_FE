@@ -1,5 +1,6 @@
 "use client";
 
+import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
 import { CalendarDays, ChevronDown } from 'lucide-react';
 
@@ -19,9 +20,11 @@ const ProfileInfoForm = () => {
       {/* Profile Header */}
       <div className="flex items-center gap-5 mb-12">
         <div className="relative">
-          <img
-            src="https://via.placeholder.com/80" 
+          <Image
+            src="/avatar.png" 
             alt="Profile"
+            height={20}
+            width={20}
             className="w-20 h-20 rounded-full object-cover border-2 border-white shadow-sm"
           />
         </div>
@@ -30,8 +33,6 @@ const ProfileInfoForm = () => {
           <p className="text-gray-400 text-sm mt-1">{user?.email || "email@example.com"}</p>
         </div>
       </div>
-
-      {/* Form Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
         <div className="space-y-3 text-right">
           <label className="text-slate-700 text-base font-medium block pr-1">الإسم بالكامل</label>

@@ -1,4 +1,5 @@
 'use client'
+import Image from "next/image";
 
 export default function FormLayout({
   children,
@@ -31,8 +32,10 @@ export default function FormLayout({
         style={{ backgroundImage: 'url("/form.png")' }}
       >
         <div className="absolute inset-0 bg-black/5" />
-        <img
-          src="/teriaq.png"
+        <Image
+          height={20}
+          width={20}
+          src='/teriaq.svg'
           className="h-28 w-auto object-contain"
           alt="Teryaq Logo"
         />

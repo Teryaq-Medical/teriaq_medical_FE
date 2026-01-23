@@ -63,7 +63,7 @@ export default function RegisterPage() {
             )}
 
             <img
-              src="/organization.png"
+              src="/organization.svg"
               className="w-50 ml-11 h-22 object-contain"
               alt="Syndicate"
             />
@@ -94,7 +94,7 @@ export default function RegisterPage() {
             )}
 
             <img
-              src="/Boss.png"
+              src="/Boss.svg"
               className="w-50 ml-11 h-20 object-contain"
               alt="Individual"
             />

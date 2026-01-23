@@ -44,7 +44,7 @@ export default function AuthLayout({
         {/* White Card for Logo */}
         <div>
           <img
-            src="/teriaq.png"
+            src="/teriaq.svg"
             className="h-24 w-auto object-contain"
             alt="Teryaq Logo"
           />

@@ -16,30 +16,20 @@ export default function SyndicateForm() {
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    
-    // Capture the form data
+  
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(formData);
-
-    // --- STATIC MOCK LOGIC ---
-    // 1. Simulate a delay (like a real API)
     await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    // 2. Save data to localStorage so the Profile page can read it
     localStorage.setItem("user_session", JSON.stringify({
       full_name: data.full_name,
       email: data.email,
       phone: data.phone,
       national_id: data.national_id,
-      // Default values for fields not in the registration form
       dob: "2000-01-01",
       gender: "ذكر"
     }));
 
-    // 3. Redirect to the profile page
     router.push("/book");
-    // -------------------------
-    
     setLoading(false);
   };
 
@@ -52,6 +42,10 @@ export default function SyndicateForm() {
   return (
     <div dir="rtl" className="w-full">
       <form onSubmit={submit} className="space-y-4">
+        <div>
+          <label className={labelStyle}>الاسم بالكامل</label>
+          <Input name="full_name" placeholder="أدخل اسمك" className={inputStyle} required />
+        </div>
         {/* Syndicate Name */}
         <div>
           <label className={labelStyle}>اسم النقابة</label>
