@@ -16,9 +16,9 @@ import InsuranceSection from "@/components/InsuranceSection";
 import { SocialsCard } from "@/components/SidebarWidgets";
 
 const MOCK_DOCTORS = [
-  { id: "1", name: "Dr. Sarah Ahmed", specialty: ["Pediatrics", "Family Medicine"], ratingText: "4.9 (120 Reviews)", imageUrl: "" },
-  { id: "2", name: "Dr. James Wilson", specialty: ["Cardiology"], ratingText: "4.8 (85 Reviews)", imageUrl: "" },
-  { id: "3", name: "Dr. Laila Hassan", specialty: ["Dermatology", "Pediatrics"], ratingText: "5.0 (210 Reviews)", imageUrl: "" },
+  { id: "1", name: "Dr. Sarah Ahmed", specialty: ["Pediatrics", "Family Medicine"], ratingText: "4.9 (120 Reviews)", imageUrl: "/doctor1.svg" },
+  { id: "2", name: "Dr. James Wilson", specialty: ["Cardiology"], ratingText: "4.8 (85 Reviews)", imageUrl: "/doctor2.svg" },
+  { id: "3", name: "Dr. Laila Hassan", specialty: ["Dermatology", "Pediatrics"], ratingText: "5.0 (210 Reviews)", imageUrl: "/doctor3.svg" },
 ];
 
 export default function ProfilePage() {
