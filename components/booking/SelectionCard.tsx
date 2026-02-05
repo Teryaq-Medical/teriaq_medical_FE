@@ -5,7 +5,7 @@ import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Props = {
-  id: number | string
+  id?: number | string
   name: string;
   specialty: string | string[]; // Accepts string or array
   ratingText: string;
