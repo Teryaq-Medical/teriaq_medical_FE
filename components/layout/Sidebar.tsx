@@ -2,19 +2,27 @@
 
 import Image from "next/image";
 import { LogOut, X } from "lucide-react";
-import { useRouter, usePathname } from "next/navigation"; // Import usePathname
+import { useRouter, usePathname } from "next/navigation";
+import { AuthService } from "@/services/auth.service"; 
+import { useState } from "react";
 
 export default function Sidebar({ onClose }: { onClose?: () => void }) {
   const router = useRouter();
-  const pathname = usePathname(); // Get the current URL path
+  const pathname = usePathname();
+  const [serverError, setServerError] = useState<string | null>(null);
 
-  const handleLogout = () => {
-    localStorage.removeItem("user_session");
-    router.push("/");
+  const handleLogout = async() => {
+    setServerError(null);
+    try {
+      await AuthService.logout();
+      router.push("/");
+    } catch (err: any) {
+      setServerError(err?.response?.data?.error || "حدث خطأ أثناء تسجيل الخروج");
+    }
   };
 
   return (
-    <aside className="h-full w-[260px] bg-white border-l px-6 py-6 flex flex-col">
+    <aside className="h-full w-65 bg-white border-l px-6 py-6 flex flex-col">
       {/* Mobile Header */}
       {onClose && (
         <div className="flex items-center justify-between mb-6 lg:hidden">

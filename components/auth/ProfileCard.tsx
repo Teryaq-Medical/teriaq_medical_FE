@@ -1,109 +1,93 @@
 "use client";
 
-import Image from "next/image";
 import React, { useEffect, useState } from "react";
-import { CalendarDays, ChevronDown } from "lucide-react";
+import UserAvatar from "@/components/ui/UserAvatar";
 import { AuthService } from "@/services/auth.service";
+import { profileFieldsByType, FieldConfig } from "@/services/types/profileFields";
+import { BaseUser } from "@/services/types/user";
+
+const getFieldValue = (user: BaseUser, field: FieldConfig) => {
+  if (field.source === "user") {
+    return (user as any)?.[field.name];
+  }
+  // This correctly accesses user.normal_profile.national_id, etc.
+  return (user as any)?.[field.source]?.[field.name];
+};
 
 const ProfileInfoForm = () => {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<BaseUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const res = await AuthService.getMe();
-        setUser(res.data.profile);
-      } catch (err) {
-        console.log("No user logged in");
+        // Crucial: Set the entire data object so user_type is present
+        setUser(res.data);
+      } catch (error) {
+        console.error("Fetch error:", error);
         setUser(null);
       } finally {
         setLoading(false);
       }
     };
-
     fetchUser();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="p-12 text-center text-gray-400">
-        جاري تحميل البيانات...
-      </div>
-    );
-  }
+  if (loading) return <div className="p-12 text-center text-gray-400">جاري تحميل البيانات...</div>;
+  if (!user) return <div className="p-12 text-center text-red-400">لا يوجد مستخدم</div>;
+
+  // Lookup the fields based on the user type
+  const fields = profileFieldsByType[user.user_type] || [];
 
   return (
-    <div
-      className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm border border-gray-50 w-full max-w-4xl"
-      dir="rtl"
-    >
-      {/* Profile Header */}
+    <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm border border-gray-50 w-full max-w-4xl" dir="rtl">
       <div className="flex items-center gap-5 mb-12">
-        <Image
-          src="/avatar.png"
-          alt="Profile"
-          height={80}
-          width={80}
-          className="w-20 h-20 rounded-full object-cover border-2 border-white shadow-sm"
+        <UserAvatar
+          name={user.full_name || user.community_profile?.community_name || user.doctors?.name || ""}
+          className="w-20 h-20 text-2xl"
         />
-
         <div className="text-right">
           <h2 className="text-2xl font-bold text-slate-800">
-            {user?.full_name}
+            {user.full_name || user.community_profile?.community_name || "مستخدم"}
           </h2>
-          <p className="text-gray-400 text-sm mt-1">{user?.email}</p>
+          <p className="text-gray-400 text-sm mt-1">{user.email}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
-        <div className="space-y-3 text-right">
-          <label className="text-slate-700 font-medium">الإسم بالكامل</label>
-          <input
-            type="text"
-            defaultValue={user?.full_name}
-            className="w-full p-4 bg-[#F9FAFB] rounded-2xl"
-          />
-        </div>
+        {fields.map((field) => {
+          const value = getFieldValue(user, field);
 
-        <div className="space-y-3 text-right">
-          <label className="text-slate-700 font-medium">رقم الموبايل</label>
-          <input
-            type="text"
-            defaultValue={user?.phone}
-            className="w-full p-4 bg-[#F9FAFB] rounded-2xl"
-          />
-        </div>
+          if (field.type === "list" && Array.isArray(value)) {
+            return (
+              <div key={field.name} className="space-y-3 text-right">
+                <label className="text-slate-700 font-medium">{field.label}</label>
+                <div className="flex flex-wrap gap-2">
+                  {value.map((v, i) => (
+                    <span key={i} className="px-4 py-1 bg-[#F9FAFB] rounded-full text-sm">{v}</span>
+                  ))}
+                </div>
+              </div>
+            );
+          }
 
-        <div className="space-y-3 text-right">
-          <label className="text-slate-700 font-medium">تاريخ الميلاد</label>
-          <div className="relative">
-            <input
-              type="text"
-              defaultValue={user?.dob}
-              className="w-full p-4 bg-[#F9FAFB] rounded-2xl"
-            />
-            <CalendarDays className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-          </div>
-        </div>
-
-        <div className="space-y-3 text-right">
-          <label className="text-slate-700 font-medium">الجنس</label>
-          <div className="relative">
-            <select
-              defaultValue={user?.gender}
-              className="w-full p-4 bg-[#F9FAFB] rounded-2xl appearance-none"
-            >
-              <option value="ذكر">ذكر</option>
-              <option value="أنثى">أنثى</option>
-            </select>
-            <ChevronDown className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-          </div>
-        </div>
+          return (
+            <div key={field.name} className="space-y-3 text-right">
+              <label className="text-slate-700 font-medium">{field.label}</label>
+              <input
+                type={field.type || "text"}
+                value={value ?? ""}
+                readOnly
+                className="w-full p-4 bg-[#F9FAFB] rounded-2xl outline-none border border-transparent focus:border-[#26C6DA]"
+              />
+            </div>
+          );
+        })}
       </div>
 
       <div className="mt-12 flex justify-start">
-        <button className="bg-[#26C6DA] text-white px-12 py-3 rounded-2xl font-semibold">
+        <button className="bg-[#26C6DA] text-white px-12 py-3 rounded-2xl font-semibold hover:bg-[#1fb1c4] transition-colors">
           تعديل
         </button>
       </div>

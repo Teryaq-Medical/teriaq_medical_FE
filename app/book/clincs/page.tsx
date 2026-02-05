@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useBooking } from "@/context/BookingContext";
+
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import BookingLayout from "@/components/layout/BookingLayout";
 import SelectionCard from "@/components/booking/SelectionCard";
-import { useRouter } from "next/navigation";
-import { useBooking } from "@/context/BookingContext";
 
 export default function AddClinicsBookingPage() {
   const router = useRouter();
@@ -33,6 +34,7 @@ export default function AddClinicsBookingPage() {
 
   const handleCardClick = (clinicId: number, specialties: string[]) => {
     setSelectedClinicId(clinicId);
+    // If there's only one specialty, auto-select it
     if (specialties.length === 1) {
       setLocalSelectedSpecialties([specialties[0]]);
     } else {
@@ -54,21 +56,25 @@ export default function AddClinicsBookingPage() {
     const clinic = CLINICS_DATA.find((c) => c.id === selectedClinicId);
     if (!clinic) return;
 
-    // Set data in global context
+    // 1. Save the Clinic/Hospital data to the Global Context
     setEntity({
       name: clinic.name,
       subText: selectedSpecialties.join("، "),
       imageUrl: clinic.imageUrl,
     });
+
+    // 2. Save chosen specialties
     setSelectedSpecialties(selectedSpecialties);
 
-    router.push("/book/date-time");
+    // 3. IMPORTANT: Navigate to the INFO page, not the date-time page
+    // This allows the user to see the clinic details and choose a doctor first
+    router.push("/book/info");
   };
 
   return (
     <DashboardLayout>
       <BookingLayout currentStep={2} title="إضافة حجز جديد">
-        <div className="flex flex-col gap-6 animate-in fade-in duration-500">
+        <div className="flex flex-col gap-6 animate-in fade-in duration-500" dir="rtl">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-[#031B4E]">
               معامل ( {CLINICS_DATA.length} )

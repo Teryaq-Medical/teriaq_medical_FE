@@ -34,8 +34,9 @@ export default function IndividualForm() {
       await AuthService.registerIndividual({
         full_name: formData.get("full_name") as string,
         email: formData.get("email") as string,
-        phone_number: formData.get("phone") as string,
+        phone_number: formData.get("phone_number") as string,
         password,
+        confirm_password: confirmPassword,
         national_id: formData.get("national_id") as string,
       });
 
@@ -82,7 +83,7 @@ export default function IndividualForm() {
 
         <div>
           <label className={labelStyle}>رقم موبايل</label>
-          <Input name="phone" placeholder="123 4567 1234" className={inputStyle} required />
+          <Input name="phone_number" placeholder="123 4567 1234" className={inputStyle} required />
         </div>
 
         <div className="relative">

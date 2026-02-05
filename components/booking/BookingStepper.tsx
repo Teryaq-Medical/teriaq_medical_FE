@@ -25,7 +25,7 @@ export default function BookingStepper({ currentStep }: StepperProps) {
                 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold
                 ${
                   isCompleted || isActive
-                    ? "bg-blue-500 text-white"
+                    ? "bg-[#1ABAE2] text-white"
                     : "bg-gray-200 text-gray-400"
                 }
               `}

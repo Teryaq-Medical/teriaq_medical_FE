@@ -1,102 +1,113 @@
-// app/book/date-time/page.tsx
 "use client";
 
-import { useRef } from "react";
-import Image from "next/image";
-import { Calendar } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useBooking } from "@/context/BookingContext";
+import { Calendar as CalendarIcon, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/navigation"; // 1. Added Router
+
+const MOCK_API_SLOTS = [
+  { date: "2024-05-20", dayName: "الإثنين", slots: ["09:00 AM", "10:30 AM", "12:00 PM", "02:30 PM"] },
+  { date: "2024-05-21", dayName: "الثلاثاء", slots: ["08:00 AM", "11:00 AM", "01:00 PM", "04:30 PM"] },
+  { date: "2024-05-22", dayName: "الأربعاء", slots: ["10:00 AM", "11:30 AM", "03:00 PM"] },
+  { date: "2024-05-23", dayName: "الخميس", slots: ["09:00 AM", "12:00 PM", "05:00 PM"] },
+];
 
 export default function DateTimeSelection() {
-  const router = useRouter();
-  const { entity, selectedDate, setSelectedDate, selectedTime, setSelectedTime } = useBooking();
-  const dateInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter(); // 2. Initialize Router
+  const { selectedDate, setSelectedDate, selectedTime, setSelectedTime } = useBooking();
+  const [availableData] = useState(MOCK_API_SLOTS);
 
-  if (!entity) {
-    return (
-      <div className="p-20 text-center text-gray-400 font-bold">
-        يرجى اختيار مقدم الخدمة أولاً...
-      </div>
-    );
-  }
+  const activeDaySlots = availableData.find(d => d.date === selectedDate)?.slots || [];
 
-  const times = ["10:00 صباحا", "8:00 مساءا", "4:00 عصرا"];
-  
-  // Format for display (Arabic Locale)
-  const displayDate = selectedDate 
-    ? new Date(selectedDate).toLocaleDateString("ar-EG", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-    : "لم يتم اختيار تاريخ";
-
-  const canProceed = !!selectedDate && !!selectedTime;
+  const handleProceed = () => {
+    // Navigate to step 4
+    router.push("/book/book-review");
+  };
 
   return (
-    <div className="w-full max-w-2xl mx-auto py-10" dir="rtl">
-      <div className="flex justify-center lg:justify-end mb-10">
-        <button
-          disabled={!canProceed}
-          onClick={() => router.push("/book/book-review")}
-          className={cn(
-            "bg-[#00B5C1] text-white px-12 py-3.5 rounded-xl font-bold shadow-lg transition-all",
-            !canProceed ? "opacity-50 cursor-not-allowed" : "hover:opacity-90 shadow-[#00B5C1]/20"
-          )}
-        >
-          حفظ و متابعة
-        </button>
+    <div className="space-y-8" dir="rtl">
+      {/* 1. Date Selection */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-[#031B4E] flex items-center gap-2">
+            <CalendarIcon size={20} className="text-[#00B5C1]" />
+            اختر التاريخ
+          </h3>
+        </div>
+        
+        <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar">
+          {availableData.map((day) => (
+            <button
+              key={day.date}
+              onClick={() => {
+                setSelectedDate(day.date);
+                setSelectedTime(""); 
+              }}
+              className={cn(
+                "flex flex-col items-center min-w-22.5 p-4 rounded-2xl border-2 transition-all",
+                selectedDate === day.date 
+                  ? "border-[#00B5C1] bg-[#F0FBFC] shadow-sm" 
+                  : "border-gray-100 bg-white hover:border-gray-200"
+              )}
+            >
+              <span className={cn("text-xs font-bold mb-1", selectedDate === day.date ? "text-[#00B5C1]" : "text-gray-400")}>
+                {day.dayName}
+              </span>
+              <span className={cn("text-lg font-black", selectedDate === day.date ? "text-orange-500" : "text-[#031B4E]")}>
+                {day.date.split("-")[2]}
+              </span>
+              <span className="text-[10px] text-gray-500">May 2024</span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="bg-white rounded-[2.5rem] border border-gray-50 shadow-[0_10px_40px_rgba(0,0,0,0.04)] p-10 md:p-14">
-        <div className="flex flex-col items-center text-center mb-10">
-          <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-white shadow-sm mb-4 bg-gray-50">
-            <Image
-              src={entity.imageUrl || "/default-avatar.png"}
-              alt={entity.name}
-              width={96}
-              height={96}
-              className="object-cover w-full h-full"
-            />
-          </div>
-          <h2 className="text-2xl font-bold text-[#031B4E]">{entity.name}</h2>
-          <p className="text-gray-400 text-sm mt-1">{entity.subText}</p>
-        </div>
+      {/* 2. Time Selection */}
+      <div className={cn("transition-opacity duration-300", !selectedDate && "opacity-30 pointer-events-none")}>
+        <h3 className="text-lg font-bold text-[#031B4E] mb-4 flex items-center gap-2">
+          <Clock size={20} className="text-[#00B5C1]" />
+          المواعيد المتاحة
+        </h3>
 
-        <div className="space-y-3 mb-10">
-          <label className="text-gray-400 text-sm block pr-2 font-medium">حدد التاريخ</label>
-          <div className="relative">
-            <div 
-              onClick={() => dateInputRef.current?.showPicker()}
-              className="w-full bg-[#F8F9FA] rounded-2xl py-5 px-12 text-[#00B5C1] font-bold text-center cursor-pointer"
-            >
-              {selectedDate ? displayDate : "اختر التاريخ من هنا"}
-            </div>
-            <Calendar className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" size={22} />
-            <input
-              ref={dateInputRef}
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="absolute inset-0 opacity-0 pointer-events-none"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <label className="text-gray-400 text-sm block pr-2 font-medium">اختر الوقت المناسب</label>
-          <div className="grid grid-cols-3 gap-4">
-            {times.map((t) => (
+        {activeDaySlots.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {activeDaySlots.map((time) => (
               <button
-                key={t}
-                onClick={() => setSelectedTime(t)}
+                key={time}
+                onClick={() => setSelectedTime(time)}
                 className={cn(
-                  "py-4 rounded-2xl font-bold transition-all text-sm",
-                  selectedTime === t ? "bg-[#E0F7F8] text-[#00B5C1]" : "bg-[#F8F9FA] text-gray-400 hover:bg-gray-100"
+                  "py-3 px-4 rounded-xl text-sm font-bold border transition-all",
+                  selectedTime === time
+                    ? "bg-[#F0FBFC] text-orange-500 border-[#031B4E] shadow-md" // Changed text-white for readability
+                    : "bg-white text-gray-600 border-gray-200 hover:border-[#00B5C1]"
                 )}
               >
-                {t}
+                {time}
               </button>
             ))}
           </div>
-        </div>
+        ) : (
+          <div className="py-10 text-center border-2 border-dashed border-gray-100 rounded-2xl">
+            <p className="text-gray-400">الرجاء اختيار تاريخ أولاً لرؤية المواعيد</p>
+          </div>
+        )}
+      </div>
+
+      {/* 3. Action Button */}
+      <div className="pt-6">
+        <button
+          onClick={handleProceed} // 3. Added click handler
+          disabled={!selectedDate || !selectedTime}
+          className={cn(
+            "w-full py-4 rounded-2xl font-bold text-lg transition-all shadow-lg",
+            selectedDate && selectedTime
+              ? "bg-[#00B5C1] text-white hover:bg-[#009ca6]"
+              : "bg-gray-100 text-gray-400 cursor-not-allowed"
+          )}
+        >
+          تأكيد الحجز ومراجعة البيانات
+        </button>
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ export const AuthService = {
     email: string;
     phone_number: string;
     password: string;
+    confirm_password: string;
     national_id: string;
   }) =>
     api.post("/register/normal/", data),
@@ -19,7 +20,19 @@ export const AuthService = {
     membership_number: string;
   }) =>
     api.post("/register/community/", data),
+  
+    login: (data: {
+      email: string;
+      password: string;
+    }) =>
+      api.post("/login/", data),
+
+    logout: () => api.post("/logout/"),
 
     getMe: () => api.get("/profile"),
 };
+
+export const DoctorService = {
+  getDoctors: () => api.get("/doctors"),
+}
 
