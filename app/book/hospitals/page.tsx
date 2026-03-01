@@ -54,6 +54,7 @@ export default function HospitalsBookingPage() {
       name: hospital.name,
       subText: localSpecialties.join("، "),
       imageUrl: getImageUrl(hospital.image),
+      type: "hospital",
     });
 
     setSelectedSpecialties(localSpecialties);
