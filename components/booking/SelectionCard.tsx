@@ -26,7 +26,6 @@ export default function SelectionCard({
   onClick,
   onSpecialtyChange,
 }: Props) {
-
   // ✅ Normalize + remove empty values
   const specialties = (
     Array.isArray(specialty) ? specialty : [specialty]
@@ -42,7 +41,7 @@ export default function SelectionCard({
       className={cn(
         "relative cursor-pointer w-full transition-all duration-300",
         "bg-[#F0FBFC] border-2 rounded-xl flex flex-col overflow-hidden shadow-sm",
-        isSelected ? "border-[#00B5C1]" : "border-transparent"
+        isSelected ? "border-[#00B5C1]" : "border-transparent",
       )}
     >
       {/* Selection circle */}
@@ -50,12 +49,12 @@ export default function SelectionCard({
         <div
           className={cn(
             "w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all",
-            isSelected ? "border-[#00B5C1] bg-white" : "border-gray-200 bg-white"
+            isSelected
+              ? "border-[#00B5C1] bg-white"
+              : "border-gray-200 bg-white",
           )}
         >
-          {isSelected && (
-            <div className="w-4 h-4 rounded-full bg-[#00B5C1]" />
-          )}
+          {isSelected && <div className="w-4 h-4 rounded-full bg-[#00B5C1]" />}
         </div>
       </div>
 
@@ -80,7 +79,7 @@ export default function SelectionCard({
           <div
             className={cn(
               "w-full flex flex-col items-center gap-2 px-2",
-              isScrollable && "max-h-[180px] overflow-y-auto"
+              isScrollable && "max-h-[180px] overflow-y-auto",
             )}
           >
             {specialties.map((item, index) => (
@@ -88,21 +87,21 @@ export default function SelectionCard({
                 key={index}
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (hasMultipleSpecialties) onSpecialtyChange?.(item);
+                  if (hasMultipleSpecialties && item) onSpecialtyChange?.(item);
                 }}
                 className={cn(
                   "relative w-full max-w-[200px] flex items-center gap-2 border px-4 py-2 text-sm font-medium transition-all rounded-md bg-white border-gray-300",
-                  selectedSpecialties.includes(item) &&
-                    "border-[#00B5C1] bg-[#E0F8FA]"
+                  selectedSpecialties.includes(item ?? "") &&
+                    "border-[#00B5C1] bg-[#E0F8FA]",
                 )}
               >
                 {hasMultipleSpecialties && (
                   <span
                     className={cn(
                       "w-3 h-3 rounded-full border-2",
-                      selectedSpecialties.includes(item)
+                      selectedSpecialties.includes(item ?? "")
                         ? "bg-[#00B5C1]"
-                        : "bg-white"
+                        : "bg-white",
                     )}
                   />
                 )}
