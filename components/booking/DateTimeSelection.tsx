@@ -2,113 +2,144 @@
 
 import { useState, useEffect } from "react";
 import { useBooking } from "@/context/BookingContext";
-import { Calendar as CalendarIcon, Clock } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation"; // 1. Added Router
-
-const MOCK_API_SLOTS = [
-  { date: "2024-05-20", dayName: "الإثنين", slots: ["09:00 AM", "10:30 AM", "12:00 PM", "02:30 PM"] },
-  { date: "2024-05-21", dayName: "الثلاثاء", slots: ["08:00 AM", "11:00 AM", "01:00 PM", "04:30 PM"] },
-  { date: "2024-05-22", dayName: "الأربعاء", slots: ["10:00 AM", "11:30 AM", "03:00 PM"] },
-  { date: "2024-05-23", dayName: "الخميس", slots: ["09:00 AM", "12:00 PM", "05:00 PM"] },
-];
+import { useRouter } from "next/navigation";
+import { DoctorService } from "@/services/auth.service";
 
 export default function DateTimeSelection() {
-  const router = useRouter(); // 2. Initialize Router
-  const { selectedDate, setSelectedDate, selectedTime, setSelectedTime } = useBooking();
-  const [availableData] = useState(MOCK_API_SLOTS);
+  const router = useRouter();
+  const { 
+  selectedDoctor, // <--- Add this
+  selectedDate, setSelectedDate, 
+  selectedTime, setSelectedTime, 
+  setSelectedScheduleId, selectedScheduleId,
+  setAssignmentId 
+} = useBooking();
 
-  const activeDaySlots = availableData.find(d => d.date === selectedDate)?.slots || [];
+  const [schedules, setSchedules] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleProceed = () => {
-    // Navigate to step 4
-    router.push("/book/book-review");
+  useEffect(() => {
+  const fetchSchedules = async () => {
+    // 2. CRITICAL: Use selectedDoctor.id (the Assignment ID), NOT entity.id
+    if (!selectedDoctor?.id) return; 
+    
+    try {
+      setLoading(true);
+      // Your service already returns res.data.data
+      const list = await DoctorService.getWorkSchedules(Number(selectedDoctor.id));
+      
+      console.log("Schedules received from BE:", list);
+      setSchedules(Array.isArray(list) ? list : []);
+    } catch (err) {
+      console.error("Fetch failed", err);
+      setSchedules([]);
+    } finally {
+      setLoading(false);
+    }
   };
+  
+  fetchSchedules();
+}, [selectedDoctor?.id]);
+
+  const getUpcomingDays = () => {
+    const daysMap: Record<string, string> = {
+      'Saturday': 'sat', 'Sunday': 'sun', 'Monday': 'mon', 
+      'Tuesday': 'tue', 'Wednesday': 'wed', 'Thursday': 'thu', 'Friday': 'fri'
+    };
+    return Array.from({ length: 14 }).map((_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() + i);
+      return {
+        date: d.toISOString().split('T')[0],
+        dayCode: daysMap[d.toLocaleDateString('en-US', { weekday: 'long' })],
+        dayNameAr: d.toLocaleDateString('ar-EG', { weekday: 'long' }),
+        dayNum: d.getDate(),
+      };
+    });
+  };
+
+  const availableDays = getUpcomingDays();
+  const selectedDayCode = availableDays.find(d => d.date === selectedDate)?.dayCode;
+  const activeSlots = schedules.filter(s => s.day === selectedDayCode);
+
+  const handleSlotSelection = (slot: any) => {
+    setSelectedTime(slot.start_time);
+    setSelectedScheduleId(slot.id);
+    
+    // Now that we fixed the serializer, slot.assignment_id will exist!
+    const aid = slot.assignment_id || slot.assignment; 
+    
+    if (aid) {
+        setAssignmentId(aid);
+        console.log("Assignment ID Captured:", aid);
+    } else {
+        console.error("Critical: Slot received without an assignment ID", slot);
+    }
+};
+
+  if (loading) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-[#00B5C1]" /></div>;
 
   return (
     <div className="space-y-8" dir="rtl">
-      {/* 1. Date Selection */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-[#031B4E] flex items-center gap-2">
-            <CalendarIcon size={20} className="text-[#00B5C1]" />
-            اختر التاريخ
-          </h3>
-        </div>
-        
+        <h3 className="text-lg font-bold text-[#031B4E] mb-4 flex items-center gap-2">
+          <CalendarIcon size={20} className="text-[#00B5C1]" /> اختر التاريخ
+        </h3>
         <div className="flex gap-3 overflow-x-auto pb-4 no-scrollbar">
-          {availableData.map((day) => (
+          {availableDays.map((day) => {
+            const hasWork = schedules.some(s => s.day === day.dayCode);
+            return (
+              <button
+                key={day.date}
+                disabled={!hasWork}
+                onClick={() => {
+                  setSelectedDate(day.date);
+                  setSelectedTime("");
+                  setSelectedScheduleId(null);
+                }}
+                className={cn(
+                  "flex flex-col items-center min-w-[80px] p-4 rounded-2xl border-2 transition-all",
+                  selectedDate === day.date ? "border-[#00B5C1] bg-[#F0FBFC]" : "border-gray-100 bg-white",
+                  !hasWork && "opacity-30 cursor-not-allowed"
+                )}
+              >
+                <span className="text-xs font-bold mb-1">{day.dayNameAr}</span>
+                <span className="text-xl font-black">{day.dayNum}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className={cn(!selectedDate && "opacity-50 pointer-events-none")}>
+        <h3 className="text-lg font-bold text-[#031B4E] mb-4 flex items-center gap-2">
+          <Clock size={20} className="text-[#00B5C1]" /> المواعيد المتاحة
+        </h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {activeSlots.map((slot) => (
             <button
-              key={day.date}
-              onClick={() => {
-                setSelectedDate(day.date);
-                setSelectedTime(""); 
-              }}
+              key={slot.id}
+              onClick={() => handleSlotSelection(slot)}
               className={cn(
-                "flex flex-col items-center min-w-22.5 p-4 rounded-2xl border-2 transition-all",
-                selectedDate === day.date 
-                  ? "border-[#00B5C1] bg-[#F0FBFC] shadow-sm" 
-                  : "border-gray-100 bg-white hover:border-gray-200"
+                "py-3 px-4 rounded-xl text-sm font-bold border transition-all",
+                selectedScheduleId === slot.id ? "bg-[#F0FBFC] text-orange-500 border-[#031B4E]" : "bg-white border-gray-200"
               )}
             >
-              <span className={cn("text-xs font-bold mb-1", selectedDate === day.date ? "text-[#00B5C1]" : "text-gray-400")}>
-                {day.dayName}
-              </span>
-              <span className={cn("text-lg font-black", selectedDate === day.date ? "text-orange-500" : "text-[#031B4E]")}>
-                {day.date.split("-")[2]}
-              </span>
-              <span className="text-[10px] text-gray-500">May 2024</span>
+              {slot.start_time.slice(0, 5)}
             </button>
           ))}
         </div>
       </div>
 
-      {/* 2. Time Selection */}
-      <div className={cn("transition-opacity duration-300", !selectedDate && "opacity-30 pointer-events-none")}>
-        <h3 className="text-lg font-bold text-[#031B4E] mb-4 flex items-center gap-2">
-          <Clock size={20} className="text-[#00B5C1]" />
-          المواعيد المتاحة
-        </h3>
-
-        {activeDaySlots.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {activeDaySlots.map((time) => (
-              <button
-                key={time}
-                onClick={() => setSelectedTime(time)}
-                className={cn(
-                  "py-3 px-4 rounded-xl text-sm font-bold border transition-all",
-                  selectedTime === time
-                    ? "bg-[#F0FBFC] text-orange-500 border-[#031B4E] shadow-md" // Changed text-white for readability
-                    : "bg-white text-gray-600 border-gray-200 hover:border-[#00B5C1]"
-                )}
-              >
-                {time}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="py-10 text-center border-2 border-dashed border-gray-100 rounded-2xl">
-            <p className="text-gray-400">الرجاء اختيار تاريخ أولاً لرؤية المواعيد</p>
-          </div>
-        )}
-      </div>
-
-      {/* 3. Action Button */}
-      <div className="pt-6">
-        <button
-          onClick={handleProceed} // 3. Added click handler
-          disabled={!selectedDate || !selectedTime}
-          className={cn(
-            "w-full py-4 rounded-2xl font-bold text-lg transition-all shadow-lg",
-            selectedDate && selectedTime
-              ? "bg-[#00B5C1] text-white hover:bg-[#009ca6]"
-              : "bg-gray-100 text-gray-400 cursor-not-allowed"
-          )}
-        >
-          تأكيد الحجز ومراجعة البيانات
-        </button>
-      </div>
+      <button
+        onClick={() => router.push("/book/book-review")}
+        disabled={!selectedScheduleId}
+        className="w-full py-4 rounded-2xl font-bold bg-[#00B5C1] text-white disabled:bg-gray-100"
+      >
+        مراجعة تفاصيل الحجز
+      </button>
     </div>
   );
 }

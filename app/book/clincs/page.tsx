@@ -1,125 +1,112 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useBooking } from "@/context/BookingContext";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import BookingLayout from "@/components/layout/BookingLayout";
 import SelectionCard from "@/components/booking/SelectionCard";
+import { ClinicsService } from "@/services/auth.service";
 
-export default function AddClinicsBookingPage() {
+export default function ClinicsBookingPage() {
   const router = useRouter();
   const { setEntity, setSelectedSpecialties } = useBooking();
 
+  const [clinics, setClinics] = useState<any[]>([]);
   const [selectedClinicId, setSelectedClinicId] = useState<number | null>(null);
-  const [selectedSpecialties, setLocalSelectedSpecialties] = useState<string[]>([]);
+  const [localSpecialties, setLocalSpecialties] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const CLINICS_DATA = [
-    {
-      id: 1,
-      name: "معمل دكتور حسام محمد",
-      specialties: ["تحاليل مخ و أعصاب"],
-      imageUrl: "/lab.svg",
-      rating: "أعلى من ٥٠+ تقييم",
-    },
-    {
-      id: 2,
-      name: "معمل دكتور أشرف البدري",
-      specialties: ["تحاليل مخ و أعصاب"],
-      imageUrl: "/lab.svg",
-      rating: "٥٠+ تقييم",
-    },
-  ];
+  const CLOUDINARY_BASE_URL = "https://res.cloudinary.com/drswiflul/";
 
-  const handleCardClick = (clinicId: number, specialties: string[]) => {
+  const getImageUrl = (path: string) => {
+    if (!path) return "/lab.svg";
+    if (path.startsWith("http")) return path;
+    return `${CLOUDINARY_BASE_URL}${path.replace(/^\//, "")}`;
+  };
+
+  useEffect(() => {
+    const fetchClinics = async () => {
+      try {
+        setLoading(true);
+        const data = await ClinicsService.getHospitals(); // نفس اسم الفنكشن عندك
+        setClinics(data);
+      } catch (error) {
+        console.error("Error fetching clinics:", error);
+        setClinics([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchClinics();
+  }, []);
+
+  const handleCardClick = (clinicId: number) => {
     setSelectedClinicId(clinicId);
-    // If there's only one specialty, auto-select it
-    if (specialties.length === 1) {
-      setLocalSelectedSpecialties([specialties[0]]);
-    } else {
-      setLocalSelectedSpecialties([]);
-    }
   };
-
-  const handleSpecialtyChange = (specialty: string) => {
-    setLocalSelectedSpecialties((prev) =>
-      prev.includes(specialty)
-        ? prev.filter((s) => s !== specialty)
-        : [...prev, specialty]
-    );
-  };
-
-  const canProceed = selectedClinicId !== null && selectedSpecialties.length > 0;
 
   const handleProceed = () => {
-    const clinic = CLINICS_DATA.find((c) => c.id === selectedClinicId);
+    const clinic = clinics.find(c => c.id === selectedClinicId);
     if (!clinic) return;
 
-    // 1. Save the Clinic/Hospital data to the Global Context
     setEntity({
+      id: clinic.id,
       name: clinic.name,
-      subText: selectedSpecialties.join("، "),
-      imageUrl: clinic.imageUrl,
+      subText: localSpecialties.join("، "),
+      imageUrl: getImageUrl(clinic.image),
+      type: "clinic", // مهم عشان الـ interface عندك
     });
 
-    // 2. Save chosen specialties
-    setSelectedSpecialties(selectedSpecialties);
+    setSelectedSpecialties(localSpecialties);
 
-    // 3. IMPORTANT: Navigate to the INFO page, not the date-time page
-    // This allows the user to see the clinic details and choose a doctor first
-    router.push("/book/info");
+    router.push(`/book/info?clinicId=${clinic.id}`);
   };
 
   return (
     <DashboardLayout>
-      <BookingLayout currentStep={2} title="إضافة حجز جديد">
-        <div className="flex flex-col gap-6 animate-in fade-in duration-500" dir="rtl">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-[#031B4E]">
-              معامل ( {CLINICS_DATA.length} )
+      <BookingLayout currentStep={2} title="اختر معمل">
+        <div className="flex flex-col gap-6" dir="rtl">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold">
+              معامل ({clinics.length})
             </h2>
 
             <button
-              disabled={!canProceed}
+              disabled={!selectedClinicId || loading}
               onClick={handleProceed}
-              className="
-                w-full md:w-auto
-                px-8 py-2.5
-                text-sm sm:text-base
-                bg-[#00B5C1]
-                text-white
-                rounded-xl
-                font-bold
-                hover:bg-[#009ca6]
-                disabled:opacity-50
-                transition-all
-                shadow-md shadow-[#00B5C1]/20
-              "
+              className="px-8 py-2.5 bg-[#00B5C1] text-white rounded-xl disabled:bg-gray-200 disabled:text-gray-400 transition-colors"
             >
               حفظ و متابعة
             </button>
           </div>
 
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {CLINICS_DATA.map((clinic) => (
-              <SelectionCard
-                key={clinic.id}
-                name={clinic.name}
-                specialty={clinic.specialties}
-                ratingText={clinic.rating}
-                imageUrl={clinic.imageUrl}
-                isSelected={selectedClinicId === clinic.id}
-                selectedSpecialties={
-                  selectedClinicId === clinic.id ? selectedSpecialties : []
-                }
-                onClick={() =>
-                  handleCardClick(clinic.id, clinic.specialties)
-                }
-                onSpecialtyChange={handleSpecialtyChange}
-              />
-            ))}
-          </section>
+          {loading ? (
+            <div className="flex justify-center items-center py-20">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#00B5C1]"></div>
+            </div>
+          ) : (
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {clinics.map((clinic) => (
+                <SelectionCard
+                  key={clinic.id}
+                  full_name={clinic.name}
+                  ratingText={clinic.rating}
+                  imageUrl={getImageUrl(clinic.image)}
+                  isSelected={selectedClinicId === clinic.id}
+                  onClick={() => handleCardClick(clinic.id)}
+                  onSpecialtyChange={(spec) =>
+                    setLocalSpecialties(prev =>
+                      prev.includes(spec)
+                        ? prev.filter(s => s !== spec)
+                        : [...prev, spec]
+                    )
+                  }
+                />
+              ))}
+            </section>
+          )}
         </div>
       </BookingLayout>
     </DashboardLayout>

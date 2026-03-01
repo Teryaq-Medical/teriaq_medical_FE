@@ -3,16 +3,24 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 
 export interface SelectedEntity {
+  id: string | number;
   name: string;
   subText: string;
   imageUrl: string;
+  type: "hospital" | "clinic" | "lab"; // always required
 }
 
 export interface SelectedDoctor {
-  id: string;
+  id: string | number;
+  assignmentId: number;
   name: string;
   specialty: string[];
   imageUrl: string;
+}
+
+export interface SelectedLabService {
+  lab: number;
+  service_name: string;
 }
 
 interface BookingContextType {
@@ -26,6 +34,12 @@ interface BookingContextType {
   setSelectedDate: (date: string) => void;
   selectedTime: string;
   setSelectedTime: (time: string) => void;
+  selectedScheduleId: number | null;
+  setSelectedScheduleId: (id: number | null) => void;
+  assignmentId: number | null;
+  setAssignmentId: (id: number | null) => void;
+  selectedLabService: SelectedLabService | null;
+  setSelectedLabService: (data: SelectedLabService | null) => void;
 }
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
@@ -36,36 +50,51 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   const [selectedSpecialties, setSelectedSpecialties] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string>("");
+  const [selectedScheduleId, setSelectedScheduleId] = useState<number | null>(null);
+  const [assignmentId, setAssignmentId] = useState<number | null>(null);
+  const [selectedLabService, setSelectedLabServiceState] = useState<SelectedLabService | null>(null);
 
-  // Smart Setter: If clinic changes, reset EVERYTHING below it
   const setEntity = (data: SelectedEntity) => {
+    if (!data.type) data.type = "hospital";
     setEntityState(data);
     setSelectedDoctorState(null);
-    setSelectedSpecialties([]); // Clear specialties
-    setSelectedDate("");         // Clear date
-    setSelectedTime("");         // Clear time
+    setSelectedSpecialties([]);
+    setSelectedDate("");
+    setSelectedTime("");
+    setSelectedScheduleId(null);
+    setAssignmentId(null);
+    setSelectedLabServiceState(null);
   };
 
-  // Smart Setter: If doctor changes, reset date and time
   const setSelectedDoctor = (doctor: SelectedDoctor | null) => {
     setSelectedDoctorState(doctor);
-    setSelectedDate(""); 
+    setSelectedDate("");
     setSelectedTime("");
+    setSelectedScheduleId(null);
+    setAssignmentId(doctor?.assignmentId || null); // automatically set
+    setSelectedLabServiceState(null);
+  };
+
+  const setSelectedLabService = (data: SelectedLabService | null) => {
+    setSelectedLabServiceState(data);
+    setSelectedDoctorState(null);
+    setSelectedDate("");
+    setSelectedTime("");
+    setSelectedScheduleId(null);
+    setAssignmentId(null);
   };
 
   return (
     <BookingContext.Provider
       value={{
-        entity,
-        setEntity,
-        selectedDoctor,
-        setSelectedDoctor,
-        selectedSpecialties,
-        setSelectedSpecialties, // <--- This was likely missing in the provider value!
-        selectedDate,
-        setSelectedDate,
-        selectedTime,
-        setSelectedTime,
+        entity, setEntity,
+        selectedDoctor, setSelectedDoctor,
+        selectedSpecialties, setSelectedSpecialties,
+        selectedDate, setSelectedDate,
+        selectedTime, setSelectedTime,
+        selectedScheduleId, setSelectedScheduleId,
+        assignmentId, setAssignmentId,
+        selectedLabService, setSelectedLabService,
       }}
     >
       {children}

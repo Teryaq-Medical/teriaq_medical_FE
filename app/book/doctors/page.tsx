@@ -8,19 +8,15 @@ import SelectionCard from "@/components/booking/SelectionCard";
 import { useBooking } from "@/context/BookingContext";
 import { DoctorService } from "@/services/auth.service";
 
-// Update Interface to match your actual JSON structure
 interface Doctor {
   id: number;
-  name: string;
-  doctor_image: string;
+  full_name: string;
+  profile_image: string;
   specialist: {
     id: number;
     name: string;
   };
 }
-
-// Senior Tip: Move the media base URL to an environment variable later
-// REPLACEME with your cloud name
 
 export default function AddBookingPage() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
@@ -28,21 +24,18 @@ export default function AddBookingPage() {
   const [selectedDoctorId, setSelectedDoctorId] = useState<number | null>(null);
 
   const router = useRouter();
-  const { setEntity } = useBooking();
+  const { setSelectedDoctor, setEntity } = useBooking();
+
+  const CLOUDINARY_BASE_URL = "https://res.cloudinary.com/drswiflul/";
 
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
         setLoading(true);
-        const res = await DoctorService.getDoctors();
-        const responseBody = res.data;
-        const actualList = Array.isArray(responseBody.data)
-          ? responseBody.data
-          : responseBody.data?.results || [];
-
-        setDoctors(actualList);
+        const data = await DoctorService.getDoctors();
+        setDoctors(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.error("Failed to fetch doctors:", error);
+        console.error("Fetch doctors error:", error);
         setDoctors([]);
       } finally {
         setLoading(false);
@@ -51,71 +44,90 @@ export default function AddBookingPage() {
     fetchDoctors();
   }, []);
 
-  // Helper to construct safe URLs
-  // Use your actual cloud name from secrets
-  const CLOUDINARY_BASE_URL = "https://res.cloudinary.com/drswiflul/";
-
   const getImageUrl = (path: string) => {
-    if (!path) return "/default-doctor.svg"; // fallback
-    // if the path is already an absolute URL
+    if (!path) return "/default-doctor.svg";
     if (path.startsWith("http")) return path;
-    // combine base URL + path
     return `${CLOUDINARY_BASE_URL}${path.replace(/^\//, "")}`;
   };
 
-  const handleProceed = () => {
-    const doc = doctors.find((d) => d.id === selectedDoctorId);
-    if (doc) {
+  const handleProceed = async () => {
+    if (!selectedDoctorId) return;
+
+    const doc = doctors.find(d => d.id === selectedDoctorId);
+    if (!doc) return;
+
+    try {
+      setLoading(true);
+      const assignments = await DoctorService.getDoctorAssignments({ doctor_id: doc.id });
+
+      if (!assignments || assignments.length === 0) {
+        alert("هذا الطبيب لا يملك مواعيد متاحة حالياً");
+        return;
+      }
+
+      const assignment = assignments[0];
+
+      // ✅ Set temporary entity for individual doctors
       setEntity({
-        name: doc.name,
-        subText: doc.specialist.name, // Access .name from the object
-        imageUrl: getImageUrl(doc.doctor_image),
+        id: doc.id,
+        name: doc.full_name,
+        subText: doc.specialist?.name || "تخصص عام",
+        imageUrl: getImageUrl(doc.profile_image),
+        type: "hospital", // placeholder
       });
+
+      setSelectedDoctor({
+        id: assignment.id,
+        assignmentId: assignment.id,
+        name: doc.full_name,
+        specialty: [doc.specialist?.name || "تخصص عام"],
+        imageUrl: getImageUrl(doc.profile_image),
+      });
+
       router.push("/book/date-time");
+    } catch (error) {
+      console.error("Assignment fetch error:", error);
+      alert("حدث خطأ أثناء تحميل بيانات الطبيب");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <DashboardLayout>
       <BookingLayout currentStep={2} title="إضافة حجز جديد">
-        <div className="flex flex-col gap-6 animate-in fade-in duration-500">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <h2 className="text-xl lg:text-2xl font-bold text-[#031B4E]">
-              أطباء ( {loading ? "..." : doctors.length} )
-            </h2>
+        <div className="flex flex-col gap-6" dir="rtl">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold">أطباء ({doctors.length})</h2>
             <button
               disabled={!selectedDoctorId || loading}
               onClick={handleProceed}
-              className="px-8 py-2.5 bg-[#00B5C1] text-white rounded-xl font-bold disabled:opacity-50 transition-all shadow-md shadow-[#00B5C1]/20"
+              className="px-8 py-2.5 bg-[#00B5C1] text-white rounded-xl disabled:bg-gray-200 disabled:text-gray-400 transition-colors"
             >
               حفظ و متابعة
             </button>
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3].map((n) => (
-                <div
-                  key={n}
-                  className="h-48 bg-gray-100 animate-pulse rounded-2xl"
-                />
-              ))}
+            <div className="flex justify-center items-center py-20">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#00B5C1]" />
             </div>
-          ) : (
+          ) : doctors.length > 0 ? (
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {doctors.map((doc) => (
                 <SelectionCard
                   key={doc.id}
-                  id={doc.id}
-                  name={doc.name}
-                  specialty={doc.specialist.name} // Access nested name
-                  imageUrl={getImageUrl(doc.doctor_image)} // Construct valid URL
+                  full_name={doc.full_name}
+                  specialty={doc.specialist?.name || "تخصص عام"}
+                  imageUrl={getImageUrl(doc.profile_image)}
                   ratingText="٥٠+ تقييم"
                   isSelected={selectedDoctorId === doc.id}
                   onClick={() => setSelectedDoctorId(doc.id)}
                 />
               ))}
             </section>
+          ) : (
+            <div className="text-center py-20 text-gray-400">لا يوجد أطباء متاحين حالياً</div>
           )}
         </div>
       </BookingLayout>

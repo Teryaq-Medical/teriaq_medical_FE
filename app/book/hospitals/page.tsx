@@ -1,106 +1,102 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useBooking } from "@/context/BookingContext";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import BookingLayout from "@/components/layout/BookingLayout";
 import SelectionCard from "@/components/booking/SelectionCard";
+import { HospitalService } from "@/services/auth.service";
 
-const HOSPITALS_DATA = [
-  {
-    id: 1,
-    name: "مستشفى الأمل",
-    specialties: ["مخ وأعصاب","باطنة","مسالك بولية","طب نفسي","أسنان","رمد"],
-    imageUrl: "/hos1.svg",
-    rating: "أعلى من ٥٠+ تقييم",
-  },
-  {
-    id: 2,
-    name: "مستشفى الرجاء الدولي",
-    specialties: ["مخ وأعصاب","باطنة","مسالك بولية"],
-    imageUrl: "/hos1.svg",
-    rating: "٥٠+ تقييم",
-  },
-  {
-    id: 3,
-    name: "مستشفى السعودي الألماني",
-    specialties: ["مخ وأعصاب","باطنة","مسالك بولية"],
-    imageUrl: "/hos1.svg",
-    rating: "٥٠+ تقييم",
-  },
-];
-
-export default function AddHospitalsBookingPage() {
+export default function HospitalsBookingPage() {
   const router = useRouter();
   const { setEntity, setSelectedSpecialties } = useBooking();
 
+  const [hospitals, setHospitals] = useState<any[]>([]);
   const [selectedHospitalId, setSelectedHospitalId] = useState<number | null>(null);
   const [localSpecialties, setLocalSpecialties] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const CLOUDINARY_BASE_URL = "https://res.cloudinary.com/drswiflul/";
+  const getImageUrl = (path: string) => {
+    if (!path) return "/default-doctor.svg";
+    if (path.startsWith("http")) return path;
+
+    return `${CLOUDINARY_BASE_URL}${path.replace(/^\//, "")}`;
+  };
+  useEffect(() => {
+    const fetchHospitals = async () => {
+      try {
+        setLoading(true);
+        const data = await HospitalService.getHospitals();
+        setHospitals(data);
+      } catch (error) {
+        console.error("Error fetching hospitals:", error);
+        setHospitals([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHospitals();
+  }, []);
 
   const handleCardClick = (hospitalId: number, specialties: string[]) => {
     setSelectedHospitalId(hospitalId);
-    if (specialties.length === 1) {
-      setLocalSpecialties([specialties[0]]);
-    } else {
-      setLocalSpecialties([]);
-    }
   };
 
   const handleProceed = () => {
-    const hospital = HOSPITALS_DATA.find((h) => h.id === selectedHospitalId);
+    const hospital = hospitals.find(h => h.id === selectedHospitalId);
     if (!hospital) return;
 
-    // 1. Save Hospital (Triggers context reset for doctor/date)
     setEntity({
+      id: hospital.id,
       name: hospital.name,
       subText: localSpecialties.join("، "),
-      imageUrl: hospital.imageUrl,
+      imageUrl: getImageUrl(hospital.image),
     });
 
-    // 2. Save chosen specialties to context
     setSelectedSpecialties(localSpecialties);
 
-    // 3. Navigate to Info page (Consistency!)
-    router.push("/book/info");
+    router.push(`/book/info?hospitalId=${hospital.id}`);
   };
 
   return (
     <DashboardLayout>
-      <BookingLayout currentStep={2} title="إضافة حجز جديد">
-        <div className="flex flex-col gap-6 animate-in fade-in duration-500" dir="rtl">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-[#031B4E]">
-              مستشفيات ( {HOSPITALS_DATA.length} )
-            </h2>
-
+      <BookingLayout currentStep={1} title="اختر مستشفى">
+        <div className="flex flex-col gap-6" dir="rtl">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold">مستشفيات ({hospitals.length})</h2>
             <button
-              disabled={!selectedHospitalId || localSpecialties.length === 0}
+              disabled={!selectedHospitalId  || loading}
               onClick={handleProceed}
-              className="w-full md:w-auto px-8 py-2.5 bg-[#00B5C1] text-white rounded-xl font-bold hover:bg-[#009ca6] disabled:opacity-50 transition-all shadow-md shadow-[#00B5C1]/20"
+              className="px-8 py-2.5 bg-[#00B5C1] text-white rounded-xl disabled:bg-gray-200 disabled:text-gray-400 transition-colors"
             >
               حفظ و متابعة
             </button>
           </div>
 
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {HOSPITALS_DATA.map((hospital) => (
-              <SelectionCard
-                key={hospital.id}
-                name={hospital.name}
-                specialty={hospital.specialties}
-                ratingText={hospital.rating}
-                imageUrl={hospital.imageUrl}
-                isSelected={selectedHospitalId === hospital.id}
-                selectedSpecialties={selectedHospitalId === hospital.id ? localSpecialties : []}
-                onClick={() => handleCardClick(hospital.id, hospital.specialties)}
-                onSpecialtyChange={(spec) => 
-                  setLocalSpecialties(prev => prev.includes(spec) ? prev.filter(s => s !== spec) : [...prev, spec])
-                }
-              />
-            ))}
-          </section>
+          {loading ? (
+            <div className="flex justify-center items-center py-20">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#00B5C1]"></div>
+            </div>
+          ) : (
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {hospitals.map((hospital) => (
+                <SelectionCard
+                  key={hospital.id}
+                  full_name={hospital.name}
+                  ratingText={hospital.rating}
+                  imageUrl={getImageUrl(hospital.image)}
+                  isSelected={selectedHospitalId === hospital.id}
+                  onClick={() => handleCardClick(hospital.id, hospital.specialists)}
+                  onSpecialtyChange={(spec) =>
+                    setLocalSpecialties(prev => prev.includes(spec) ? prev.filter(s => s !== spec) : [...prev, spec])
+                  }
+                />
+              ))}
+            </section>
+          )}
         </div>
       </BookingLayout>
     </DashboardLayout>

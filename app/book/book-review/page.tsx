@@ -1,110 +1,140 @@
 "use client";
 
+import { useState } from "react";
+import Link from "next/link";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import BookingLayout from "@/components/layout/BookingLayout";
 import { useBooking } from "@/context/BookingContext";
-import { Calendar, Clock, MapPin, User, CheckCircle2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { AppointmentService, LabsService } from "@/services/auth.service";
+import { Clock, MapPin, CheckCircle2, Loader2 } from "lucide-react";
 
 export default function ReviewBookingPage() {
-  const { entity, selectedDoctor, selectedSpecialties, selectedDate, selectedTime } = useBooking();
+  const {
+    entity,
+    selectedDoctor,
+    selectedLabService,
+    selectedDate,
+    selectedTime,
+    selectedScheduleId,
+    assignmentId
+  } = useBooking();
+  
+  const [loading, setLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
-  const hasRequiredData = !!entity && !!selectedDate && !!selectedTime;
+  const isLab = entity?.type === "lab";
 
-  // Final Confirmation Handler
+  const hasRequiredData = (() => {
+    if (!entity) return false;
+    if (isLab) return !!selectedLabService;
+    if (!selectedDoctor || !selectedDate || !selectedTime) return false;
+    if (selectedScheduleId === null || assignmentId === null) return false;
+    return true;
+  })();
+
   const handleConfirmBooking = async () => {
-    // Logic to call your API goes here
-    console.log("Booking Confirmed:", { entity, selectedDoctor, selectedDate, selectedTime });
+    if (!entity) return;
+    setLoading(true);
+
+    try {
+      let response;
+
+      if (isLab && selectedLabService) {
+        response = await LabsService.createBooking({
+          lab: selectedLabService.lab,
+          service_name: selectedLabService.service_name,
+        });
+      } else {
+        response = await AppointmentService.create({
+          assignment: Number(assignmentId),
+          schedule: Number(selectedScheduleId),
+          appointment_date: selectedDate,
+          appointment_time: selectedTime.length > 5 ? selectedTime.slice(0, 5) : selectedTime,
+        });
+      }
+
+      console.log("Booking API response:", response);
+
+      // ✅ Treat any successful call as success
+      setIsSuccess(true);
+
+    } catch (error: any) {
+      console.error("API Error:", error.response?.data || error.message);
+      alert("حدث خطأ أثناء تأكيد الحجز.");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (isSuccess) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6" dir="rtl">
+          <CheckCircle2 size={80} className="text-green-500" />
+          <h1 className="text-4xl font-black text-[#031B4E]">تم الحجز بنجاح!</h1>
+          <Link href="/profile" className="bg-[#00B5C1] text-white px-8 py-4 rounded-2xl font-bold">
+            عرض موعدي في الملف الشخصي
+          </Link>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
       <BookingLayout title="مراجعة وتأكيد الحجز" currentStep={4}>
         {!hasRequiredData ? (
-          <div className="p-10 text-center text-gray-400 font-bold border-2 border-dashed rounded-2xl" dir="rtl">
-            <p className="text-xl mb-2">⚠️ بيانات ناقصة</p>
-            <p>يرجى العودة واختيار التاريخ والوقت بشكل صحيح.</p>
+          <div className="p-10 text-center text-gray-400 border-2 border-dashed rounded-2xl" dir="rtl">
+            <p className="font-bold text-lg mb-2">بيانات الحجز غير مكتملة</p>
+            <p className="text-sm">يرجى العودة واختيار البيانات بشكل صحيح.</p>
+            <Link href="/book" className="mt-4 inline-block text-[#00B5C1] underline">العودة للبداية</Link>
           </div>
         ) : (
-          <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500" dir="rtl">
-            
-            {/* 1. The Summary Grid (Styled like Date-Time) */}
+          <div className="max-w-4xl mx-auto space-y-6" dir="rtl">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              
-              {/* Place/Clinic Card */}
-              <div className="flex items-center gap-4 p-5 bg-white border border-gray-100 rounded-2xl shadow-sm">
-                <div className="w-14 h-14 rounded-2xl bg-[#F0FBFC] flex items-center justify-center text-[#00B5C1]">
-                  <MapPin size={28} />
-                </div>
+              <div className="flex items-center gap-4 p-5 bg-white border rounded-2xl">
+                <MapPin size={28} className="text-[#00B5C1]" />
                 <div>
-                  <p className="text-xs text-gray-400 font-bold mb-1">المنشأة الطبية</p>
-                  <h4 className="text-[#031B4E] font-bold text-lg">{entity.name}</h4>
+                  <p className="text-xs text-gray-400">المنشأة</p>
+                  <h4 className="text-[#031B4E] font-bold">{entity?.name}</h4>
                 </div>
               </div>
 
-              {/* Doctor/Specialty Card */}
-              <div className="flex items-center gap-4 p-5 bg-white border border-gray-100 rounded-2xl shadow-sm">
-                <div className="w-14 h-14 rounded-2xl overflow-hidden bg-gray-50 border border-gray-100">
-                  <img 
-                    src={selectedDoctor?.imageUrl || entity.imageUrl || "/lab.svg"} 
-                    alt="selection" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+              <div className="flex items-center gap-4 p-5 bg-white border rounded-2xl">
+                <img
+                  src={selectedDoctor?.imageUrl || entity?.imageUrl || "/lab.svg"}
+                  className="w-14 h-14 rounded-2xl object-cover"
+                />
                 <div>
-                  <p className="text-xs text-gray-400 font-bold mb-1">الخدمة / الطبيب</p>
-                  <h4 className="text-[#031B4E] font-bold text-lg">
-                    {selectedDoctor?.name || "الفحص المختار"}
-                  </h4>
-                  <p className="text-xs text-[#00B5C1] font-medium">
-                    {selectedSpecialties.length > 0 ? selectedSpecialties.join(" • ") : entity.subText}
-                  </p>
+                  <p className="text-xs text-gray-400">{isLab ? "الخدمة المختارة" : "الطبيب"}</p>
+                  <h4 className="text-[#031B4E] font-bold">{isLab ? selectedLabService?.service_name : selectedDoctor?.name}</h4>
                 </div>
               </div>
-
             </div>
 
-            {/* 2. The Appointment Details Card */}
-            <div className="bg-white rounded-3xl p-8 text-white relative overflow-hidden shadow-xl">
-              {/* Background Decorative Icon */}
-              <Calendar className="absolute -bottom-4 -left-4 w-32 h-32 text-white/5 rotate-12" />
-              
-              <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
-                <div className="flex flex-col items-center md:items-start gap-2">
-                  <div className="flex items-center gap-2 text-orange-500 font-bold text-sm bg-white/10 px-3 py-1 rounded-full">
-                    <CheckCircle2 size={16} />
-                    موعد الحجز المختار
-                  </div>
-                  <h2 className="text-3xl font-black mt-2 tracking-tight text-[#031B4E]">
-                    {selectedDate}
-                  </h2>
-                  <div className="flex items-center gap-2 text-[#00B5C1]">
+            <div className="bg-white rounded-3xl p-8 border shadow-xl flex flex-col md:flex-row justify-between items-center gap-8">
+              {!isLab ? (
+                <div>
+                  <h2 className="text-3xl font-black text-[#031B4E]">{selectedDate}</h2>
+                  <div className="flex items-center gap-2 text-[#00B5C1] text-xl">
                     <Clock size={18} />
-                    <span className="text-xl font-medium">{selectedTime}</span>
+                    {selectedTime}
                   </div>
                 </div>
-
-                <div className="w-full md:w-auto">
-                  <button 
-                    onClick={handleConfirmBooking}
-                    className="w-full md:w-auto px-12 py-4 bg-[#00B5C1] hover:bg-[#009ca6] text-white rounded-2xl font-bold text-lg transition-all shadow-lg active:scale-95"
-                  >
-                    تأكيد الحجز النهائي
-                  </button>
+              ) : (
+                <div>
+                  <h2 className="text-2xl font-bold text-[#031B4E]">سيتم التواصل معك لتحديد التفاصيل</h2>
                 </div>
-              </div>
-            </div>
+              )}
 
-            {/* 3. Important Notes */}
-            <div className="p-6 bg-orange-50 border border-orange-100 rounded-2xl">
-              <h5 className="text-orange-700 font-bold mb-2 flex items-center gap-2 text-sm">
-                ⚠️ ملاحظات هامة
-              </h5>
-              <ul className="text-orange-600 text-xs space-y-1 list-disc list-inside">
-                <li>يرجى الحضور قبل الموعد بـ ١٥ دقيقة لتأكيد البيانات.</li>
-              </ul>
+              <button
+                onClick={handleConfirmBooking}
+                disabled={loading}
+                className="w-full md:w-auto px-12 py-4 bg-[#00B5C1] text-white rounded-2xl font-bold text-lg disabled:opacity-50 flex items-center gap-2"
+              >
+                {loading ? <Loader2 className="animate-spin" /> : "تأكيد الحجز النهائي"}
+              </button>
             </div>
-
           </div>
         )}
       </BookingLayout>

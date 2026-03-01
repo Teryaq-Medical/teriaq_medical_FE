@@ -10,7 +10,6 @@ const getFieldValue = (user: BaseUser, field: FieldConfig) => {
   if (field.source === "user") {
     return (user as any)?.[field.name];
   }
-  // This correctly accesses user.normal_profile.national_id, etc.
   return (user as any)?.[field.source]?.[field.name];
 };
 
@@ -22,7 +21,6 @@ const ProfileInfoForm = () => {
     const fetchUser = async () => {
       try {
         const res = await AuthService.getMe();
-        // Crucial: Set the entire data object so user_type is present
         setUser(res.data);
       } catch (error) {
         console.error("Fetch error:", error);
@@ -37,12 +35,11 @@ const ProfileInfoForm = () => {
   if (loading) return <div className="p-12 text-center text-gray-400">جاري تحميل البيانات...</div>;
   if (!user) return <div className="p-12 text-center text-red-400">لا يوجد مستخدم</div>;
 
-  // Lookup the fields based on the user type
   const fields = profileFieldsByType[user.user_type] || [];
 
   return (
-    <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm border border-gray-50 w-full max-w-4xl" dir="rtl">
-      <div className="flex items-center gap-5 mb-12">
+    <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-sm border border-gray-50 w-full" dir="rtl">
+      <div className="flex items-center gap-5 mb-12 w-full">
         <UserAvatar
           name={user.full_name || user.community_profile?.community_name || user.doctors?.name || ""}
           className="w-20 h-20 text-2xl"

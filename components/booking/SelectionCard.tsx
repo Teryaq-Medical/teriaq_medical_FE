@@ -5,9 +5,9 @@ import { Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Props = {
-  id?: number | string
-  name: string;
-  specialty: string | string[]; // Accepts string or array
+  id?: number | string;
+  full_name: string;
+  specialty?: string | string[];
   ratingText: string;
   imageUrl: string;
   isSelected?: boolean;
@@ -17,7 +17,7 @@ type Props = {
 };
 
 export default function SelectionCard({
-  name,
+  full_name,
   specialty,
   ratingText,
   imageUrl,
@@ -26,11 +26,14 @@ export default function SelectionCard({
   onClick,
   onSpecialtyChange,
 }: Props) {
-  // Ensure specialty is always an array
-  const specialties = Array.isArray(specialty) ? specialty : [specialty];
-  const hasMultipleSpecialties = specialties.length > 1;
 
-  // Scrollable if more than 5 specialties
+  // ✅ Normalize + remove empty values
+  const specialties = (
+    Array.isArray(specialty) ? specialty : [specialty]
+  ).filter(Boolean); // removes undefined / null / ""
+
+  const hasSpecialties = specialties.length > 0;
+  const hasMultipleSpecialties = specialties.length > 1;
   const isScrollable = specialties.length > 5;
 
   return (
@@ -42,7 +45,7 @@ export default function SelectionCard({
         isSelected ? "border-[#00B5C1]" : "border-transparent"
       )}
     >
-      {/* Card selection dot */}
+      {/* Selection circle */}
       <div className="absolute top-5 right-5 z-10">
         <div
           className={cn(
@@ -50,70 +53,74 @@ export default function SelectionCard({
             isSelected ? "border-[#00B5C1] bg-white" : "border-gray-200 bg-white"
           )}
         >
-          {isSelected && <div className="w-4 h-4 rounded-full bg-[#00B5C1]" />}
+          {isSelected && (
+            <div className="w-4 h-4 rounded-full bg-[#00B5C1]" />
+          )}
         </div>
       </div>
 
-      {/* Top Half */}
+      {/* Main Content */}
       <div className="flex flex-col items-center pt-10 pb-6 px-4">
         <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md mb-4 bg-white shrink-0">
           <Image
-            src={imageUrl}
-            alt={name}
+            src={imageUrl || "/default-doctor.svg"}
+            alt={full_name || "Image"}
             width={96}
             height={96}
             className="object-cover w-full h-full"
           />
         </div>
 
-        <h3 className="font-bold text-xl text-[#031B4E] mb-4 text-center">{name}</h3>
+        <h3 className="font-bold text-xl text-[#031B4E] mb-4 text-center">
+          {full_name}
+        </h3>
 
-        {/* Specialties */}
-        <div
-          className={cn(
-            "w-full flex flex-col items-center gap-2 px-2",
-            isScrollable ? "max-h-[180px] overflow-y-auto scrollbar-thin scrollbar-thumb-[#00B5C1]/30" : ""
-          )}
-        >
-          {specialties.map((item, index) => {
-            const selected = selectedSpecialties.includes(item);
-            return (
+        {/* ✅ Render ONLY if specialties exist */}
+        {hasSpecialties && (
+          <div
+            className={cn(
+              "w-full flex flex-col items-center gap-2 px-2",
+              isScrollable && "max-h-[180px] overflow-y-auto"
+            )}
+          >
+            {specialties.map((item, index) => (
               <button
                 key={index}
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (hasMultipleSpecialties) {
-                    onSpecialtyChange?.(item);
-                  }
+                  if (hasMultipleSpecialties) onSpecialtyChange?.(item);
                 }}
                 className={cn(
-                  "relative w-full max-w-[200px] flex items-center gap-2 border px-4 py-2 text-sm font-medium transition-all rounded-md bg-white border-gray-300 hover:border-[#00B5C1] hover:bg-[#F0FBFC]",
-                  selected && "border-[#00B5C1] bg-[#E0F8FA]"
+                  "relative w-full max-w-[200px] flex items-center gap-2 border px-4 py-2 text-sm font-medium transition-all rounded-md bg-white border-gray-300",
+                  selectedSpecialties.includes(item) &&
+                    "border-[#00B5C1] bg-[#E0F8FA]"
                 )}
               >
-                {/* Dot only for multiple specialties */}
                 {hasMultipleSpecialties && (
                   <span
                     className={cn(
-                      "w-3 h-3 rounded-full border-2 flex-shrink-0 transition-all",
-                      selected ? "bg-[#00B5C1] border-[#00B5C1]" : "bg-white border-gray-300"
+                      "w-3 h-3 rounded-full border-2",
+                      selectedSpecialties.includes(item)
+                        ? "bg-[#00B5C1]"
+                        : "bg-white"
                     )}
                   />
                 )}
+
                 <span className="flex-1 text-center">{item}</span>
               </button>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Divider */}
-      <div className="w-full h-[1.5px] bg-[#00B5C1]/20 shrink-0 mt-auto" />
+      <div className="w-full h-[1.5px] bg-[#00B5C1]/20 mt-auto" />
 
-      {/* Bottom Half: Rating */}
-      <div className="py-5 px-6 flex justify-center bg-[#F0FBFC] shrink-0">
-        <div className="flex items-center gap-2 border border-[#00B5C1] rounded-2xl px-6 py-2 text-[#00B5C1] bg-white shadow-sm">
-          <Star size={18} className="fill-[#00B5C1] text-[#00B5C1]" />
+      {/* Rating */}
+      <div className="py-5 px-6 flex justify-center bg-[#F0FBFC]">
+        <div className="flex items-center gap-2 border border-[#00B5C1] rounded-2xl px-6 py-2 text-[#00B5C1] bg-white">
+          <Star size={18} className="fill-[#00B5C1]" />
           <span className="text-sm font-bold">{ratingText}</span>
         </div>
       </div>
