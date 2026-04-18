@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { AuthService } from "@/services/auth.service";
 
 export default function IndividualForm() {
@@ -41,7 +42,6 @@ export default function IndividualForm() {
       });
 
       router.push("/book");
-
     } catch (err: any) {
       setError(
         err?.response?.data?.error ||
@@ -59,7 +59,6 @@ export default function IndividualForm() {
   return (
     <div dir="rtl" className="w-full">
       <form onSubmit={submit} className="space-y-4">
-
         {error && (
           <div className="bg-red-100 text-red-700 p-3 rounded-lg text-sm">
             {error}
@@ -115,9 +114,7 @@ export default function IndividualForm() {
           />
           <button
             type="button"
-            onClick={() =>
-              setShowConfirmPassword(!showConfirmPassword)
-            }
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
             className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
           >
             {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -131,6 +128,17 @@ export default function IndividualForm() {
           {loading ? "جاري الإرسال..." : "متابعة"}
         </Button>
       </form>
+
+      {/* Added login link */}
+      <div className="text-center mt-4">
+        <span className="text-gray-600">لديك حساب؟ </span>
+        <Link
+          href="/login"
+          className="text-[#21b3d5] font-bold hover:underline"
+        >
+          سجل دخول
+        </Link>
+      </div>
     </div>
   );
 }
