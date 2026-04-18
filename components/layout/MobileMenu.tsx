@@ -3,8 +3,9 @@ import Link from "next/link";
 
 interface MobileMenuProps {
   isOpen: boolean;
+  user: any; 
+  onLoginClick: () => void;
 }
-
 export default function MobileMenu({ isOpen }: MobileMenuProps) {
   if (!isOpen) return null;
 
