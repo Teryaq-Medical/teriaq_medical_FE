@@ -84,7 +84,11 @@ const UserBookings = () => {
                   <p className="text-sm text-gray-400">
                     {booking.status === "pending"
                       ? "بانتظار التأكيد"
-                      : "مؤكد"}
+                      : booking.status === "confirmed"
+                        ? "مؤكد"
+                        : booking.status === "completed"
+                          ? "تم الكشف"
+                          : "غير معروف"}
                   </p>
                 </div>
               </div>

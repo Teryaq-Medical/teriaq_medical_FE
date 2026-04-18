@@ -1,7 +1,9 @@
 import axios from "axios";
 
+
+const is_production = false
 const api = axios.create({
-  baseURL: "https://teriaq-medical-be.onrender.com/api", // عدّلها حسب backend
+  baseURL: is_production ? "https://teriaq-medical-be.onrender.com/api" : "http://localhost:8000/api", // عدّلها حسب backend
   headers: {
     "Content-Type": "application/json",
   },

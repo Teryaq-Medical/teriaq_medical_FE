@@ -63,14 +63,24 @@ export default function ProfilePage() {
         }
 
         // HOSPITAL / CLINIC logic
-        const res = await DoctorService.getAssignedDoctors(Number(entity.id), entity.type);
-        const normalized: Doctor[] = res.map((assignment: any) => ({
-          id: assignment.id,
-          name: assignment.doctor_info?.name || "دكتور غير معروف",
-          specialty: assignment.doctor_info?.specialty || [],
-          ratingText: "4.8 (120 تقييم)",
-          imageUrl: assignment.doctor_info?.image || "/default-doctor.svg",
-        }));
+        const res = await DoctorService.getAssignedDoctors(
+          Number(entity.id),
+          entity.type,
+        );
+        const normalized: Doctor[] = res.map((assignment: any) => {
+          // ✅ Support both registered and unregistered doctors
+          const doctorData =
+            assignment.doctor || assignment.unregistered_doctor;
+          return {
+            id: assignment.id,
+            name: doctorData?.full_name || "دكتور غير معروف",
+            specialty: doctorData?.specialist?.name
+              ? [doctorData.specialist.name]
+              : [],
+            ratingText: "4.8 (120 تقييم)",
+            imageUrl: doctorData?.profile_image || "/default-doctor.svg",
+          };
+        });
 
         setDoctors(normalized);
       } catch (err) {
@@ -130,7 +140,7 @@ export default function ProfilePage() {
             imageUrl={entity.imageUrl}
           />
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="lg:col-span-2 flex flex-col gap-6">
               {/* Tabs */}
               <div className="flex gap-8 border-b border-gray-200">
@@ -140,14 +150,14 @@ export default function ProfilePage() {
                     onClick={() => setActiveTab(t)}
                     className={cn(
                       "pb-4 text-sm font-bold capitalize transition-all relative",
-                      activeTab === t ? "text-[#00B5C1]" : "text-gray-400"
+                      activeTab === t ? "text-[#00B5C1]" : "text-gray-400",
                     )}
                   >
                     {t === "options"
                       ? "الخيارات"
                       : t === "about"
-                      ? "حول"
-                      : "التأمينات"}
+                        ? "حول"
+                        : "التأمينات"}
                     {activeTab === t && (
                       <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#00B5C1] rounded-t-full" />
                     )}
@@ -172,7 +182,7 @@ export default function ProfilePage() {
                         "flex items-center gap-3 px-12 py-4 rounded-xl font-bold transition-all",
                         selectedId
                           ? "bg-[#00B5C1] text-white shadow-lg"
-                          : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                          : "bg-gray-100 text-gray-400 cursor-not-allowed",
                       )}
                     >
                       <span>
@@ -210,10 +220,6 @@ export default function ProfilePage() {
 
               {activeTab === "about" && <AboutSection />}
               {activeTab === "insurances" && <InsuranceSection />}
-            </div>
-
-            <div className="lg:col-span-1 space-y-6">
-              <SocialsCard />
             </div>
           </div>
         </div>

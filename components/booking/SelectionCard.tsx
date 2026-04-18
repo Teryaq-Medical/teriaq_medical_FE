@@ -35,6 +35,9 @@ export default function SelectionCard({
   const hasMultipleSpecialties = specialties.length > 1;
   const isScrollable = specialties.length > 5;
 
+  // ✅ Convert HTTP to HTTPS for Next.js Image component
+  const secureImageUrl = imageUrl?.replace(/^http:\/\//i, 'https://') || "/default-doctor.svg";
+
   return (
     <div
       onClick={onClick}
@@ -62,11 +65,16 @@ export default function SelectionCard({
       <div className="flex flex-col items-center pt-10 pb-6 px-4">
         <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md mb-4 bg-white shrink-0">
           <Image
-            src={imageUrl || "/default-doctor.svg"}
+            src={secureImageUrl}
             alt={full_name || "Image"}
             width={96}
             height={96}
             className="object-cover w-full h-full"
+            onError={(e) => {
+              // Fallback to default image if loading fails
+              const target = e.target as HTMLImageElement;
+              target.src = "/default-doctor.svg";
+            }}
           />
         </div>
 
