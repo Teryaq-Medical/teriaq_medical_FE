@@ -82,12 +82,6 @@ const ProfileInfoForm = () => {
           );
         })}
       </div>
-
-      <div className="mt-12 flex justify-start">
-        <button className="bg-[#26C6DA] text-white px-12 py-3 rounded-2xl font-semibold hover:bg-[#1fb1c4] transition-colors">
-          تعديل
-        </button>
-      </div>
     </div>
   );
 };

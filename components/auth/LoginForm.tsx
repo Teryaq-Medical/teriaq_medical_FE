@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -15,7 +16,7 @@ import { loginSchema, LoginSchema } from "@/validations/auth.schema";
 export default function LoginForm() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | React.ReactNode | null>(null);
 
   const {
     register,
@@ -29,9 +30,35 @@ export default function LoginForm() {
     setServerError(null);
 
     try {
+      // Step 1: Login
       await AuthService.login(data);
+
+      // Step 2: Fetch profile to check user type
+      const response = await AuthService.getMe();
+      const profile = response.data; // ✅ Extract data from Axios response
+
+      // Debug log (remove in production)
+      console.log("User profile:", profile);
+
+      if (profile.user_type !== "normal") {
+        // If not a normal user, show custom error with link to provider login
+        setServerError(
+          <span>
+            هذا الحساب غير مخصص للأفراد.{" "}
+            <Link href="/provider/login" className="text-[#21b3d5] underline font-bold">
+              يمكنك تسجيل الدخول هنا
+            </Link>
+          </span>
+        );
+        // Optional: logout immediately to clear any session cookie/token
+        await AuthService.logout();
+        return;
+      }
+
+      // Only normal users proceed
       router.push("/book");
     } catch (err: any) {
+      // Handle login or profile fetch errors
       setServerError(err?.response?.data?.error || "حدث خطأ أثناء تسجيل الدخول");
     }
   };
@@ -108,6 +135,16 @@ export default function LoginForm() {
             {isSubmitting ? "جاري الدخول..." : "ادخل"}
           </Button>
         </form>
+
+        {/* Registration link */}
+        <div className="text-center mt-6">
+          <Link
+            href="/register/individual"
+            className="text-sm text-[#21b3d5] hover:underline"
+          >
+            ليس لديك حساب؟ سجل حساب جديد
+          </Link>
+        </div>
       </div>
     </div>
   );
