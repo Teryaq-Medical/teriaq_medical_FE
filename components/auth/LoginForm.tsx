@@ -45,7 +45,7 @@ export default function LoginForm() {
         setServerError(
           <span>
             هذا الحساب غير مخصص للأفراد.{" "}
-            <Link href="https://teriaq-medical-fe.onrender.com" className="text-[#21b3d5] underline font-bold">
+            <Link href="https://teriaq-dashboard.onrender.com/login" className="text-[#21b3d5] underline font-bold">
               يمكنك تسجيل الدخول هنا
             </Link>
           </span>
