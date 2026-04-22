@@ -5,6 +5,8 @@ import api from "./api";
 
 
 export const AuthService = {
+
+  
   registerIndividual: (data: any) => api.post("/register/normal/", data),
   registerCommunity: (data: any) => api.post("/register/community/", data),
   login: (data: any) => api.post("/login/", data),
@@ -39,7 +41,7 @@ export const ClinicsService = {
 export const DoctorService = {
    getAssignedDoctors: async (
     entityId: number,
-    type: "hospital" | "clinic" | "lab" | "individual"
+    type: "hospital" | "clinic" | "lab" | "doctor"
   ) => {
     if (!type) {
       console.error("Entity type is missing!");
@@ -56,7 +58,7 @@ export const DoctorService = {
       case "clinic":
         params = { clinic_id: entityId };
         break;
-      case "individual":
+      case "doctor":
         params = { doctor_id: entityId };
         break;
       case "lab":
@@ -74,8 +76,11 @@ export const DoctorService = {
     return res.data.data || res.data || [];
   },
 
-  getWorkSchedules: async (assignmentId: number) => {
-    const res = await api.get(`/work-schedule/?assignment=${assignmentId}`);
+  getWorkSchedules: async (id: number, isDoctorId: boolean = false) => {
+    const param = isDoctorId ? `doctor_id=${id}` : `assignment=${id}`;
+    const res = await api.get(`/work-schedule/?${param}`);
+    
+    // Support both direct array response or Teriaq wrap
     return res.data.data || res.data || [];
   },
 
@@ -87,7 +92,7 @@ export const DoctorService = {
   getDoctorAssignments: async (params: { doctor_id?: number }) => {
     const query = new URLSearchParams(params as any).toString();
     const res = await api.get(`/doctor-assignments/?${query}`);
-    return res.data.data;
+    return res.data.data || res.data || [];
   },
 };
 
